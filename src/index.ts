@@ -1,5 +1,5 @@
 export { Mill } from "./mill.js";
-export type { Converter, ConversionResult, StreamInfo } from "./types.js";
+export type { Converter, ConversionResult, StreamInfo, ConvertOptions, LlmClient } from "./types.js";
 export { PdfConverter } from "./converters/pdf.js";
 export { DocxConverter } from "./converters/docx.js";
 export { PptxConverter } from "./converters/pptx.js";
@@ -14,4 +14,6 @@ export { JsonConverter } from "./converters/json.js";
 export { YamlConverter } from "./converters/yaml.js";
 export { XmlConverter } from "./converters/xml.js";
 export { ZipConverter } from "./converters/zip.js";
+export { ImageConverter } from "./converters/image.js";
+export { AudioConverter } from "./converters/audio.js";
 export { PlainTextConverter } from "./converters/plain-text.js";

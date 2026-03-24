@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { extname, basename } from "node:path";
-import type { Converter, ConversionResult, StreamInfo } from "./types.js";
+import type { Converter, ConversionResult, StreamInfo, ConvertOptions } from "./types.js";
 import { PdfConverter } from "./converters/pdf.js";
 import { DocxConverter } from "./converters/docx.js";
 import { PptxConverter } from "./converters/pptx.js";
@@ -15,12 +15,17 @@ import { JsonConverter } from "./converters/json.js";
 import { YamlConverter } from "./converters/yaml.js";
 import { XmlConverter } from "./converters/xml.js";
 import { ZipConverter } from "./converters/zip.js";
+import { ImageConverter } from "./converters/image.js";
+import { AudioConverter } from "./converters/audio.js";
 import { PlainTextConverter } from "./converters/plain-text.js";
 
 export class Mill {
   private converters: Converter[] = [];
+  private options: ConvertOptions;
 
-  constructor() {
+  constructor(options: ConvertOptions = {}) {
+    this.options = options;
+
     // Order matters: specific formats first, generic last.
     // URL-specific converters (Wikipedia) before generic HTML.
     // ZIP converter gets a reference to other converters for recursive conversion.
@@ -36,6 +41,8 @@ export class Mill {
       new CsvConverter(),
       new JsonConverter(),
       new YamlConverter(),
+      new ImageConverter(),
+      new AudioConverter(),
     ];
 
     const generic: Converter[] = [
@@ -116,7 +123,7 @@ export class Mill {
       if (!converter.accepts(streamInfo)) continue;
 
       try {
-        return await converter.convert(input, streamInfo);
+        return await converter.convert(input, streamInfo, this.options);
       } catch (err) {
         errors.push({
           converter: converter.name,

@@ -14,6 +14,8 @@ const FORMATS = [
   { name: "JSON", extensions: [".json"], builtin: true },
   { name: "YAML", extensions: [".yaml", ".yml"], builtin: true },
   { name: "XML", extensions: [".xml", ".svg"], builtin: true },
+  { name: "Images", extensions: [".jpg", ".png", ".gif", ".webp"], builtin: true },
+  { name: "Audio", extensions: [".mp3", ".wav", ".m4a", ".flac"], builtin: true },
   { name: "ZIP", extensions: [".zip"], builtin: true },
   { name: "Plain text", extensions: [".txt", ".md", ".rst", ".log"], builtin: true },
   { name: "Code", extensions: [".py", ".js", ".ts", ".go", ".rs", "..."], builtin: true },
