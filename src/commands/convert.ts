@@ -1,8 +1,17 @@
 import { writeFileSync } from "node:fs";
+import { extname } from "node:path";
 import { Mill } from "../mill.js";
 import type { OutputOptions } from "../utils/output.js";
-import { output, success, error, dim } from "../utils/output.js";
+import { output, success, error, dim, info } from "../utils/output.js";
 import { EXIT_ERROR, EXIT_UNSUPPORTED } from "../utils/exit-codes.js";
+
+async function readStdin(): Promise<Buffer> {
+  const chunks: Uint8Array[] = [];
+  for await (const chunk of process.stdin) {
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
 
 export async function convert(
   source: string,
@@ -11,14 +20,34 @@ export async function convert(
   const mill = new Mill();
 
   try {
+    let result;
+    const isStdin = source === "-";
     const isUrl =
       source.startsWith("http:") ||
       source.startsWith("https:") ||
       source.startsWith("file:");
 
-    const result = isUrl
-      ? await mill.convertUrl(source)
-      : await mill.convertFile(source);
+    if (isStdin) {
+      // Check if stdin is a TTY (no piped input)
+      if (process.stdin.isTTY) {
+        error(
+          "No input on stdin. Pipe a file: cat report.pdf | mill -",
+        );
+        process.exit(EXIT_ERROR);
+      }
+      const buffer = await readStdin();
+      result = await mill.convert(buffer, {});
+    } else if (isUrl) {
+      // Progress hint for URL fetches
+      if (!options.json && !options.quiet) {
+        info(`Fetching ${source}...`);
+      }
+      result = await mill.convertUrl(source);
+    } else {
+      result = await mill.convertFile(source);
+    }
+
+    const label = isStdin ? "stdin" : source;
 
     // Write to file or stdout
     if (options.output) {
@@ -26,7 +55,7 @@ export async function convert(
       output(options, {
         json: () => ({
           success: true,
-          source,
+          source: label,
           output: options.output,
           title: result.title,
           length: result.markdown.length,
@@ -41,7 +70,7 @@ export async function convert(
       output(options, {
         json: () => ({
           success: true,
-          source,
+          source: label,
           title: result.title,
           markdown: result.markdown,
         }),
@@ -55,9 +84,20 @@ export async function convert(
     if (msg.includes("Unsupported format")) {
       output(options, {
         json: () => ({ success: false, error: msg }),
-        human: () => error(msg),
+        human: () => {
+          error(msg);
+          console.log(dim("  Run 'mill formats' to see supported formats."));
+        },
       });
       process.exit(EXIT_UNSUPPORTED);
+    }
+
+    if (msg.includes("ENOENT") || msg.includes("no such file")) {
+      output(options, {
+        json: () => ({ success: false, error: `File not found: ${source}` }),
+        human: () => error(`File not found: ${source}`),
+      });
+      process.exit(EXIT_ERROR);
     }
 
     output(options, {
