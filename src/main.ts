@@ -5,6 +5,8 @@ import { Command } from "commander";
 import { convert } from "./commands/convert.js";
 import { onboard } from "./commands/onboard.js";
 import { formats } from "./commands/formats.js";
+import { init } from "./commands/init.js";
+import { configShow, configGet, configSet } from "./commands/config.js";
 
 const require = createRequire(import.meta.url);
 const { version } = require("../package.json");
@@ -17,6 +19,7 @@ program
   .version(`mill ${version}`, "-V, --version")
   .option("--json", "Output as JSON")
   .option("-q, --quiet", "Raw markdown only, no decoration")
+  .option("-m, --model <model>", "LLM model for image/audio (default: gpt-4o)")
   .addHelpText(
     "after",
     `
@@ -24,8 +27,11 @@ Examples:
   $ mill report.pdf                  Convert a PDF to markdown
   $ mill document.docx -o doc.md     Convert DOCX, write to file
   $ mill https://example.com         Convert a web page
+  $ mill photo.jpg                    Extract EXIF + AI description
+  $ mill recording.mp3               Metadata + transcription
   $ cat file.pdf | mill -            Read from stdin
-  $ mill formats                     List supported formats
+  $ mill init                        Create .mill/ config
+  $ mill config show                 Show LLM settings
 
 Docs: https://github.com/Michaelliv/mill`,
   );
@@ -42,7 +48,44 @@ program
       json: globals.json,
       quiet: globals.quiet,
       output: opts.output,
+      model: globals.model,
     });
+  });
+
+program
+  .command("init")
+  .description("Create .mill/ config directory")
+  .action(async (_opts, cmd) => {
+    const globals = cmd.optsWithGlobals();
+    await init([], { json: globals.json, quiet: globals.quiet });
+  });
+
+const configCmd = program
+  .command("config")
+  .description("Manage mill configuration");
+
+configCmd
+  .command("show")
+  .description("Show current configuration")
+  .action(async (_opts, cmd) => {
+    const globals = cmd.optsWithGlobals();
+    await configShow([], { json: globals.json, quiet: globals.quiet });
+  });
+
+configCmd
+  .command("get <key>")
+  .description("Get a config value")
+  .action(async (key, _opts, cmd) => {
+    const globals = cmd.optsWithGlobals();
+    await configGet(key, { json: globals.json, quiet: globals.quiet });
+  });
+
+configCmd
+  .command("set <key> <value>")
+  .description("Set a config value")
+  .action(async (key, value, _opts, cmd) => {
+    const globals = cmd.optsWithGlobals();
+    await configSet(key, value, { json: globals.json, quiet: globals.quiet });
   });
 
 program
@@ -90,6 +133,7 @@ program.on("command:*", async (args) => {
     json: globals.json,
     quiet: globals.quiet,
     output: globals.output,
+    model: globals.model,
   });
 });
 
@@ -105,6 +149,8 @@ Examples:
   $ mill https://example.com
 
 Commands:
+  mill init        Create .mill/ config directory
+  mill config      Manage settings (LLM, API keys)
   mill formats     List supported formats
   mill onboard     Add instructions to CLAUDE.md
 

@@ -18,6 +18,9 @@ dist
 bun.lockb
 bun.lock
 
+# Config (may contain API keys)
+.mill/
+
 # dotenv
 .env
 .env.local

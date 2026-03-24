@@ -1,6 +1,8 @@
 import { writeFileSync } from "node:fs";
 import { extname } from "node:path";
 import { Mill } from "../mill.js";
+import { loadConfig, resolveModel } from "../config.js";
+import { createLlmClient } from "../llm.js";
 import type { OutputOptions } from "../utils/output.js";
 import { output, success, error, dim, info } from "../utils/output.js";
 import { EXIT_ERROR, EXIT_UNSUPPORTED } from "../utils/exit-codes.js";
@@ -15,9 +17,16 @@ async function readStdin(): Promise<Buffer> {
 
 export async function convert(
   source: string,
-  options: OutputOptions & { output?: string },
+  options: OutputOptions & { output?: string; model?: string },
 ): Promise<void> {
-  const mill = new Mill();
+  const config = loadConfig();
+  const llmClient = createLlmClient(config);
+  const llmModel = resolveModel(config, options.model);
+
+  const mill = new Mill({
+    llmClient: llmClient ?? undefined,
+    llmModel,
+  });
 
   try {
     let result;
