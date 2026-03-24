@@ -23,8 +23,9 @@ export class XlsxConverter implements Converter {
   }
 
   async convert(input: Buffer, _streamInfo: StreamInfo): Promise<ConversionResult> {
-    let XLSX: typeof import("xlsx");
+    let XLSX: any;
     try {
+      // @ts-ignore - xlsx is an optional dependency
       XLSX = await import("xlsx");
     } catch {
       throw new Error(
@@ -37,7 +38,7 @@ export class XlsxConverter implements Converter {
 
     for (const sheetName of workbook.SheetNames) {
       const sheet = workbook.Sheets[sheetName];
-      const rows: string[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      const rows: any[][] = XLSX.utils.sheet_to_json(sheet, { header: 1 });
 
       if (rows.length === 0) continue;
 
