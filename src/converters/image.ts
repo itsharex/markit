@@ -120,7 +120,7 @@ export class ImageConverter implements Converter {
       ],
     });
 
-    return response.choices[0]?.message?.content || undefined;
+    return response.choices[0]?.message?.content ?? undefined;
   }
 
   private guessMimetype(ext?: string): string {

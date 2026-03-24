@@ -44,7 +44,7 @@ export async function configShow(
       console.log(`  ${dim("api key:")} ${apiKey ? `***${apiKey.slice(-4)} (${keySource})` : dim("not set")}`);
       console.log(`  ${dim("api base:")} ${resolveApiBase(config)}`);
       console.log(`  ${dim("model:")} ${resolveModel(config)}`);
-      console.log(`  ${dim("transcription:")} ${config.llm?.transcriptionModel || "whisper-1"}`);
+      console.log(`  ${dim("transcription:")} ${config.llm?.transcriptionModel || "gpt-4o-mini-transcribe"}`);
       console.log();
     },
   });

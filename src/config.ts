@@ -12,7 +12,7 @@ export interface MillConfig {
     apiKey?: string;
     /** Model for image descriptions (default: gpt-4o) */
     model?: string;
-    /** Model for audio transcription (default: whisper-1) */
+    /** Model for audio transcription (default: gpt-4o-mini-transcribe) */
     transcriptionModel?: string;
   };
 }
@@ -109,5 +109,5 @@ export function resolveModel(
  * Resolve the transcription model.
  */
 export function resolveTranscriptionModel(config: MillConfig): string {
-  return config.llm?.transcriptionModel || "whisper-1";
+  return config.llm?.transcriptionModel || "gpt-4o-mini-transcribe";
 }

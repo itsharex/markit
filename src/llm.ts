@@ -27,7 +27,7 @@ export function createLlmClient(config: MillConfig): LlmClient | null {
             body: JSON.stringify({
               model: params.model,
               messages: params.messages,
-              max_tokens: 1024,
+              max_tokens: params.max_tokens ?? 1024,
             }),
           });
 
@@ -45,7 +45,17 @@ export function createLlmClient(config: MillConfig): LlmClient | null {
         async create(params) {
           const formData = new FormData();
           formData.append("model", params.model || transcriptionModel);
-          formData.append("file", params.file, "audio.mp3");
+
+          // Convert Blob/File to a File with a proper name if needed
+          if (params.file instanceof File) {
+            formData.append("file", params.file);
+          } else {
+            // Blob — wrap in a File with a name (required by the API)
+            const file = new File([params.file], "audio.mp3", {
+              type: params.file.type || "audio/mpeg",
+            });
+            formData.append("file", file);
+          }
 
           const res = await fetch(`${baseUrl}/audio/transcriptions`, {
             method: "POST",

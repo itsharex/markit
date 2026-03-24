@@ -90,11 +90,12 @@ export class AudioConverter implements Converter {
     if (!client.audio?.transcriptions) return undefined;
 
     const mimetype = streamInfo.mimetype || this.guessMimetype(streamInfo.extension);
-    const blob = new Blob([input], { type: mimetype });
+    const filename = streamInfo.filename || `audio${streamInfo.extension || ".mp3"}`;
+    const file = new File([input], filename, { type: mimetype });
 
     const result = await client.audio.transcriptions.create({
-      model: "whisper-1",
-      file: blob,
+      model: "gpt-4o-mini-transcribe",
+      file,
     });
 
     return result.text || undefined;

@@ -15,10 +15,21 @@ export interface ConversionResult {
 export interface ConvertOptions {
   /** OpenAI-compatible client for image descriptions and audio transcription */
   llmClient?: LlmClient;
-  /** Model to use for LLM operations (e.g. "gpt-4o") */
+  /** Model to use for vision/chat operations (e.g. "gpt-4o") */
   llmModel?: string;
 }
 
+/**
+ * OpenAI-compatible client interface.
+ * Works with the official `openai` SDK or any compatible client.
+ *
+ * Usage with official SDK:
+ *   import OpenAI from "openai";
+ *   const mill = new Mill({ llmClient: new OpenAI() as LlmClient, llmModel: "gpt-4o" });
+ *
+ * Usage with raw fetch (built-in, see llm.ts):
+ *   const mill = new Mill({ llmClient: createLlmClient(config), llmModel: "gpt-4o" });
+ */
 export interface LlmClient {
   chat: {
     completions: {
@@ -26,10 +37,19 @@ export interface LlmClient {
         model: string;
         messages: Array<{
           role: string;
-          content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+          content:
+            | string
+            | Array<
+                | { type: "text"; text: string }
+                | { type: "image_url"; image_url: { url: string; detail?: "auto" | "low" | "high" } }
+              >;
         }>;
+        max_tokens?: number;
       }): Promise<{
-        choices: Array<{ message: { content: string } }>;
+        choices: Array<{
+          message: { content: string | null; role: string };
+          finish_reason: string;
+        }>;
       }>;
     };
   };
@@ -37,7 +57,7 @@ export interface LlmClient {
     transcriptions: {
       create(params: {
         model: string;
-        file: Blob;
+        file: File | Blob;
       }): Promise<{ text: string }>;
     };
   };

@@ -25,7 +25,7 @@ export async function init(
   const config: MillConfig = {
     llm: {
       model: "gpt-4o",
-      transcriptionModel: "whisper-1",
+      transcriptionModel: "gpt-4o-mini-transcribe",
     },
   };
 
