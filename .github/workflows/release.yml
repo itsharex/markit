@@ -19,7 +19,7 @@ jobs:
       - run: bun install
 
       - name: Lint & format
-        run: bun run check
+        run: npx @biomejs/biome check src/
 
       - name: Type check
         run: bunx tsc --noEmit
