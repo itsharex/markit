@@ -1,6 +1,6 @@
-# markit ✓
+# markit
 
-Convert anything to markdown. Mark it, and move on.
+🖍️ Convert anything to markdown. Mark it.
 
 ```bash
 npm install -g markit-ai
