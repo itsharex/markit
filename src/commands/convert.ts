@@ -53,9 +53,9 @@ export async function convert(
       const buffer = await readStdin();
       result = await markit.convert(buffer, {});
     } else if (isUrl) {
-      // Progress hint for URL fetches
+      // Progress hint for URL fetches (stderr so it doesn't pollute piped output)
       if (!options.json && !options.quiet) {
-        info(`Fetching ${source}...`);
+        process.stderr.write(`ℹ Fetching ${source}...\n`);
       }
       result = await markit.convertUrl(source);
     } else {

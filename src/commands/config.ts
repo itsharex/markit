@@ -84,7 +84,7 @@ export async function configGet(
 
 export async function configSet(
   key: string,
-  value: string,
+  value: string | undefined,
   options: OutputOptions,
 ): Promise<void> {
   if (!findConfigDir()) {
@@ -95,12 +95,41 @@ export async function configSet(
     process.exit(EXIT_ERROR);
   }
 
+  // Secrets: read from stdin instead of args (avoids shell history)
+  const isSecret = key.toLowerCase().includes("key") || key.toLowerCase().includes("secret") || key.toLowerCase().includes("token");
+  let resolved: string;
+
+  if (isSecret && !value) {
+    // Prompt from stdin
+    if (process.stdin.isTTY) {
+      process.stderr.write(`Enter value for ${key}: `);
+    }
+    const chunks: Buffer[] = [];
+    for await (const chunk of process.stdin) {
+      chunks.push(chunk);
+    }
+    resolved = Buffer.concat(chunks).toString("utf-8").trim();
+    if (!resolved) {
+      error("No value provided");
+      process.exit(EXIT_USER_ERROR);
+    }
+  } else if (isSecret && value) {
+    // Warn if secret passed as arg
+    console.error(dim("  hint: secrets in args leak to shell history. Use: markit config set llm.apiKey < keyfile"));
+    resolved = value;
+  } else if (value === undefined) {
+    error("Missing value. Usage: markit config set <key> <value>");
+    process.exit(EXIT_USER_ERROR);
+  } else {
+    resolved = value;
+  }
+
   const config = loadConfig();
 
-  let parsed: any = value;
-  if (value === "true") parsed = true;
-  else if (value === "false") parsed = false;
-  else if (/^\d+$/.test(value)) parsed = parseInt(value);
+  let parsed: any = resolved;
+  if (resolved === "true") parsed = true;
+  else if (resolved === "false") parsed = false;
+  else if (/^\d+$/.test(resolved)) parsed = parseInt(resolved);
 
   setNestedValue(config, key, parsed);
   saveConfig(config);

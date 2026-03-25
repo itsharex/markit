@@ -16,7 +16,7 @@ const program = new Command();
 
 program
   .name("markit")
-  .description("Convert anything to markdown. Everything gets milled.")
+  .description("Convert anything to markdown. Mark it, and move on.")
   .version(`markit ${version}`, "-V, --version")
   .option("--json", "Output as JSON")
   .option("-q, --quiet", "Raw markdown only, no decoration")
@@ -43,7 +43,6 @@ program
   .description("Convert a file or URL to markdown")
   .argument("<source>", "File path, URL, or - for stdin")
   .option("-o, --output <file>", "Write to file instead of stdout")
-  .option("-p, --prompt <text>", "Extra instructions for image description")
   .action(async (source, opts, cmd) => {
     const globals = cmd.optsWithGlobals();
     await convert(source, {
@@ -83,8 +82,8 @@ configCmd
   });
 
 configCmd
-  .command("set <key> <value>")
-  .description("Set a config value")
+  .command("set <key> [value]")
+  .description("Set a config value (secrets read from stdin if no value given)")
   .action(async (key, value, _opts, cmd) => {
     const globals = cmd.optsWithGlobals();
     await configSet(key, value, { json: globals.json, quiet: globals.quiet });
@@ -143,7 +142,7 @@ program.on("command:*", async (args) => {
   }
 
   // Check for typos against known subcommands
-  const commands = ["convert", "formats", "onboard", "help"];
+  const commands = ["convert", "formats", "onboard", "help", "init", "config", "plugin"];
   const close = commands.filter(
     (c) => levenshtein(source, c) <= 2 && source !== c,
   );
