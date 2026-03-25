@@ -1,6 +1,0 @@
-{
-  "llm": {
-    "model": "gpt-4o-mini",
-    "transcriptionModel": "whisper-1"
-  }
-}
