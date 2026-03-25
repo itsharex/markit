@@ -1,78 +1,102 @@
-import type { LlmClient } from "./types.js";
+import type { MarkitOptions } from "./types.js";
 import type { MarkitConfig } from "./config.js";
-import { resolveApiKey, resolveApiBase, resolveTranscriptionModel } from "./config.js";
+import {
+  resolveApiKey,
+  resolveApiBase,
+  resolveModel,
+  resolveTranscriptionModel,
+} from "./config.js";
 
 /**
- * Build an OpenAI-compatible LLM client from config + env vars.
- * Returns null if no API key is available.
- * Uses raw fetch — no openai SDK dependency.
+ * Build describe/transcribe functions from config + env vars.
+ * Returns empty object if no API key is available.
+ * Uses raw fetch against the OpenAI-compatible API — no SDK dependency.
  */
-export function createLlmClient(config: MarkitConfig): LlmClient | null {
+export function createLlmFunctions(config: MarkitConfig): MarkitOptions {
   const apiKey = resolveApiKey(config);
-  if (!apiKey) return null;
+  if (!apiKey) return {};
 
   const baseUrl = resolveApiBase(config).replace(/\/+$/, "");
+  const model = resolveModel(config);
   const transcriptionModel = resolveTranscriptionModel(config);
 
   return {
-    chat: {
-      completions: {
-        async create(params) {
-          const res = await fetch(`${baseUrl}/chat/completions`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: JSON.stringify({
-              model: params.model,
-              messages: params.messages,
-              max_tokens: params.max_tokens ?? 1024,
-            }),
-          });
+    async describe(image: Buffer, mimetype: string): Promise<string> {
+      const base64 = image.toString("base64");
+      const dataUri = `data:${mimetype};base64,${base64}`;
 
-          if (!res.ok) {
-            const body = await res.text();
-            throw new Error(`LLM API error ${res.status}: ${body}`);
-          }
-
-          return res.json() as any;
+      const res = await fetch(`${baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
         },
-      },
+        body: JSON.stringify({
+          model,
+          messages: [
+            {
+              role: "user",
+              content: [
+                {
+                  type: "text",
+                  text: "Write a detailed description of this image.",
+                },
+                {
+                  type: "image_url",
+                  image_url: { url: dataUri },
+                },
+              ],
+            },
+          ],
+          max_tokens: 1024,
+        }),
+      });
+
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`LLM API error ${res.status}: ${body}`);
+      }
+
+      const data: any = await res.json();
+      return data.choices?.[0]?.message?.content ?? "";
     },
-    audio: {
-      transcriptions: {
-        async create(params) {
-          const formData = new FormData();
-          formData.append("model", params.model || transcriptionModel);
 
-          // Convert Blob/File to a File with a proper name if needed
-          if (params.file instanceof File) {
-            formData.append("file", params.file);
-          } else {
-            // Blob — wrap in a File with a name (required by the API)
-            const file = new File([params.file], "audio.mp3", {
-              type: params.file.type || "audio/mpeg",
-            });
-            formData.append("file", file);
-          }
+    async transcribe(audio: Buffer, mimetype: string): Promise<string> {
+      const ext = mimeToExt(mimetype);
+      const file = new File([audio], `audio${ext}`, { type: mimetype });
 
-          const res = await fetch(`${baseUrl}/audio/transcriptions`, {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${apiKey}`,
-            },
-            body: formData,
-          });
+      const formData = new FormData();
+      formData.append("model", transcriptionModel);
+      formData.append("file", file);
 
-          if (!res.ok) {
-            const body = await res.text();
-            throw new Error(`Transcription API error ${res.status}: ${body}`);
-          }
-
-          return res.json() as any;
+      const res = await fetch(`${baseUrl}/audio/transcriptions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
         },
-      },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`Transcription API error ${res.status}: ${body}`);
+      }
+
+      const data: any = await res.json();
+      return data.text ?? "";
     },
   };
+}
+
+function mimeToExt(mime: string): string {
+  const map: Record<string, string> = {
+    "audio/mpeg": ".mp3",
+    "audio/wav": ".wav",
+    "audio/mp4": ".m4a",
+    "video/mp4": ".mp4",
+    "audio/ogg": ".ogg",
+    "audio/flac": ".flac",
+    "audio/aac": ".aac",
+  };
+  return map[mime] || ".mp3";
 }

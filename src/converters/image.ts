@@ -1,4 +1,4 @@
-import type { Converter, ConversionResult, StreamInfo, ConvertOptions } from "../types.js";
+import type { Converter, ConversionResult, StreamInfo, MarkitOptions } from "../types.js";
 
 const EXTENSIONS = [".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif", ".bmp", ".svg"];
 const MIMETYPES = ["image/"];
@@ -12,14 +12,13 @@ export class ImageConverter implements Converter {
     return false;
   }
 
-  async convert(input: Buffer, streamInfo: StreamInfo, options?: ConvertOptions): Promise<ConversionResult> {
+  async convert(input: Buffer, streamInfo: StreamInfo, options?: MarkitOptions): Promise<ConversionResult> {
     const sections: string[] = [];
 
     // Extract EXIF metadata
     try {
       const exifr = await import("exifr");
       const metadata = await exifr.parse(input, {
-        // Pick useful fields
         pick: [
           "ImageWidth", "ImageHeight", "Make", "Model",
           "DateTimeOriginal", "CreateDate", "GPSLatitude", "GPSLongitude",
@@ -31,11 +30,9 @@ export class ImageConverter implements Converter {
 
       if (metadata && Object.keys(metadata).length > 0) {
         sections.push("## Metadata\n");
-        // Image dimensions
         if (metadata.ImageWidth && metadata.ImageHeight) {
           sections.push(`ImageSize: ${metadata.ImageWidth}x${metadata.ImageHeight}`);
         }
-        // Key fields
         const fields: Record<string, string | undefined> = {
           Title: metadata.Title,
           Description: metadata.Description || metadata.ImageDescription,
@@ -73,20 +70,16 @@ export class ImageConverter implements Converter {
       // EXIF parsing failed — not all images have EXIF
     }
 
-    // LLM description (if configured)
-    if (options?.llmClient && options?.llmModel) {
+    // AI description
+    if (options?.describe) {
       try {
-        const description = await this.describeWithLlm(
-          input,
-          streamInfo,
-          options.llmClient,
-          options.llmModel,
-        );
+        const mimetype = streamInfo.mimetype || guessMimetype(streamInfo.extension);
+        const description = await options.describe(input, mimetype);
         if (description) {
           sections.push(`\n## Description\n\n${description}`);
         }
       } catch {
-        // LLM description failed — continue without it
+        // Description failed — continue without it
       }
     }
 
@@ -96,45 +89,13 @@ export class ImageConverter implements Converter {
 
     return { markdown: sections.join("\n").trim() };
   }
+}
 
-  private async describeWithLlm(
-    input: Buffer,
-    streamInfo: StreamInfo,
-    client: NonNullable<ConvertOptions["llmClient"]>,
-    model: string,
-  ): Promise<string | undefined> {
-    const mimetype = streamInfo.mimetype || this.guessMimetype(streamInfo.extension);
-    const base64 = input.toString("base64");
-    const dataUri = `data:${mimetype};base64,${base64}`;
-
-    const response = await client.chat.completions.create({
-      model,
-      messages: [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: "Write a detailed description of this image." },
-            { type: "image_url", image_url: { url: dataUri } },
-          ],
-        },
-      ],
-    });
-
-    return response.choices[0]?.message?.content ?? undefined;
-  }
-
-  private guessMimetype(ext?: string): string {
-    const map: Record<string, string> = {
-      ".jpg": "image/jpeg",
-      ".jpeg": "image/jpeg",
-      ".png": "image/png",
-      ".gif": "image/gif",
-      ".webp": "image/webp",
-      ".tiff": "image/tiff",
-      ".tif": "image/tiff",
-      ".bmp": "image/bmp",
-      ".svg": "image/svg+xml",
-    };
-    return map[ext || ""] || "image/png";
-  }
+function guessMimetype(ext?: string): string {
+  const map: Record<string, string> = {
+    ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+    ".gif": "image/gif", ".webp": "image/webp", ".tiff": "image/tiff",
+    ".tif": "image/tiff", ".bmp": "image/bmp", ".svg": "image/svg+xml",
+  };
+  return map[ext || ""] || "image/png";
 }

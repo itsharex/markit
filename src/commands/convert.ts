@@ -1,8 +1,8 @@
 import { writeFileSync } from "node:fs";
 import { extname } from "node:path";
 import { Markit } from "../markit.js";
-import { loadConfig, resolveModel } from "../config.js";
-import { createLlmClient } from "../llm.js";
+import { loadConfig } from "../config.js";
+import { createLlmFunctions } from "../llm.js";
 import type { OutputOptions } from "../utils/output.js";
 import { output, success, error, dim, info } from "../utils/output.js";
 import { EXIT_ERROR, EXIT_UNSUPPORTED } from "../utils/exit-codes.js";
@@ -17,16 +17,12 @@ async function readStdin(): Promise<Buffer> {
 
 export async function convert(
   source: string,
-  options: OutputOptions & { output?: string; model?: string },
+  options: OutputOptions & { output?: string },
 ): Promise<void> {
   const config = loadConfig();
-  const llmClient = createLlmClient(config);
-  const llmModel = resolveModel(config, options.model);
+  const llmFunctions = createLlmFunctions(config);
 
-  const markit = new Markit({
-    llmClient: llmClient ?? undefined,
-    llmModel,
-  });
+  const markit = new Markit(llmFunctions);
 
   try {
     let result;

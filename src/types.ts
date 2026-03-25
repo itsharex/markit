@@ -12,55 +12,12 @@ export interface ConversionResult {
   title?: string;
 }
 
-export interface ConvertOptions {
-  /** OpenAI-compatible client for image descriptions and audio transcription */
-  llmClient?: LlmClient;
-  /** Model to use for vision/chat operations (e.g. "gpt-4o") */
-  llmModel?: string;
-}
+export interface MarkitOptions {
+  /** Describe an image, return markdown. Receives raw bytes and mimetype. */
+  describe?: (image: Buffer, mimetype: string) => Promise<string>;
 
-/**
- * OpenAI-compatible client interface.
- * Works with the official `openai` SDK or any compatible client.
- *
- * Usage with official SDK:
- *   import OpenAI from "openai";
- *   const markit = new Markit({ llmClient: new OpenAI() as LlmClient, llmModel: "gpt-4o" });
- *
- * Usage with raw fetch (built-in, see llm.ts):
- *   const markit = new Markit({ llmClient: createLlmClient(config), llmModel: "gpt-4o" });
- */
-export interface LlmClient {
-  chat: {
-    completions: {
-      create(params: {
-        model: string;
-        messages: Array<{
-          role: string;
-          content:
-            | string
-            | Array<
-                | { type: "text"; text: string }
-                | { type: "image_url"; image_url: { url: string; detail?: "auto" | "low" | "high" } }
-              >;
-        }>;
-        max_tokens?: number;
-      }): Promise<{
-        choices: Array<{
-          message: { content: string | null; role: string };
-          finish_reason: string;
-        }>;
-      }>;
-    };
-  };
-  audio?: {
-    transcriptions: {
-      create(params: {
-        model: string;
-        file: File | Blob;
-      }): Promise<{ text: string }>;
-    };
-  };
+  /** Transcribe audio, return text. Receives raw bytes and mimetype. */
+  transcribe?: (audio: Buffer, mimetype: string) => Promise<string>;
 }
 
 export interface Converter {
@@ -71,5 +28,5 @@ export interface Converter {
   accepts(streamInfo: StreamInfo): boolean;
 
   /** Convert the source to markdown */
-  convert(input: Buffer, streamInfo: StreamInfo, options?: ConvertOptions): Promise<ConversionResult>;
+  convert(input: Buffer, streamInfo: StreamInfo, options?: MarkitOptions): Promise<ConversionResult>;
 }

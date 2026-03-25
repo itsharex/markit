@@ -1,4 +1,4 @@
-import type { Converter, ConversionResult, StreamInfo, ConvertOptions } from "../types.js";
+import type { Converter, ConversionResult, StreamInfo, MarkitOptions } from "../types.js";
 
 const EXTENSIONS = [".mp3", ".wav", ".m4a", ".mp4", ".ogg", ".flac", ".aac", ".wma"];
 const MIMETYPES = ["audio/", "video/mp4"];
@@ -12,7 +12,7 @@ export class AudioConverter implements Converter {
     return false;
   }
 
-  async convert(input: Buffer, streamInfo: StreamInfo, options?: ConvertOptions): Promise<ConversionResult> {
+  async convert(input: Buffer, streamInfo: StreamInfo, options?: MarkitOptions): Promise<ConversionResult> {
     const sections: string[] = [];
 
     // Extract audio metadata
@@ -51,7 +51,6 @@ export class AudioConverter implements Converter {
         if (value) sections.push(`${key}: ${value}`);
       }
 
-      // Lyrics if embedded
       if (common.lyrics?.length) {
         sections.push(`\n## Lyrics\n\n${common.lyrics.join("\n")}`);
       }
@@ -59,14 +58,11 @@ export class AudioConverter implements Converter {
       // Metadata parsing failed
     }
 
-    // Transcription via LLM (Whisper API)
-    if (options?.llmClient?.audio?.transcriptions && options?.llmModel) {
+    // AI transcription
+    if (options?.transcribe) {
       try {
-        const transcript = await this.transcribe(
-          input,
-          streamInfo,
-          options.llmClient,
-        );
+        const mimetype = streamInfo.mimetype || guessMimetype(streamInfo.extension);
+        const transcript = await options.transcribe(input, mimetype);
         if (transcript) {
           sections.push(`\n## Transcript\n\n${transcript}`);
         }
@@ -82,39 +78,6 @@ export class AudioConverter implements Converter {
     return { markdown: sections.join("\n").trim() };
   }
 
-  private async transcribe(
-    input: Buffer,
-    streamInfo: StreamInfo,
-    client: NonNullable<ConvertOptions["llmClient"]>,
-  ): Promise<string | undefined> {
-    if (!client.audio?.transcriptions) return undefined;
-
-    const mimetype = streamInfo.mimetype || this.guessMimetype(streamInfo.extension);
-    const filename = streamInfo.filename || `audio${streamInfo.extension || ".mp3"}`;
-    const file = new File([input], filename, { type: mimetype });
-
-    const result = await client.audio.transcriptions.create({
-      model: "gpt-4o-mini-transcribe",
-      file,
-    });
-
-    return result.text || undefined;
-  }
-
-  private guessMimetype(ext?: string): string {
-    const map: Record<string, string> = {
-      ".mp3": "audio/mpeg",
-      ".wav": "audio/wav",
-      ".m4a": "audio/mp4",
-      ".mp4": "video/mp4",
-      ".ogg": "audio/ogg",
-      ".flac": "audio/flac",
-      ".aac": "audio/aac",
-      ".wma": "audio/x-ms-wma",
-    };
-    return map[ext || ""] || "audio/mpeg";
-  }
-
   private formatDuration(seconds: number): string {
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
@@ -122,4 +85,13 @@ export class AudioConverter implements Converter {
     if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
     return `${m}:${String(s).padStart(2, "0")}`;
   }
+}
+
+function guessMimetype(ext?: string): string {
+  const map: Record<string, string> = {
+    ".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4",
+    ".mp4": "video/mp4", ".ogg": "audio/ogg", ".flac": "audio/flac",
+    ".aac": "audio/aac", ".wma": "audio/x-ms-wma",
+  };
+  return map[ext || ""] || "audio/mpeg";
 }

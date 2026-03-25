@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { extname, basename } from "node:path";
-import type { Converter, ConversionResult, StreamInfo, ConvertOptions } from "./types.js";
+import type { Converter, ConversionResult, StreamInfo, MarkitOptions } from "./types.js";
 import { PdfConverter } from "./converters/pdf.js";
 import { DocxConverter } from "./converters/docx.js";
 import { PptxConverter } from "./converters/pptx.js";
@@ -21,9 +21,9 @@ import { PlainTextConverter } from "./converters/plain-text.js";
 
 export class Markit {
   private converters: Converter[] = [];
-  private options: ConvertOptions;
+  private options: MarkitOptions;
 
-  constructor(options: ConvertOptions = {}) {
+  constructor(options: MarkitOptions = {}) {
     this.options = options;
 
     // Order matters: specific formats first, generic last.

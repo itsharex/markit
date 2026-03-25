@@ -19,7 +19,6 @@ program
   .version(`markit ${version}`, "-V, --version")
   .option("--json", "Output as JSON")
   .option("-q, --quiet", "Raw markdown only, no decoration")
-  .option("-m, --model <model>", "LLM model for image/audio (default: gpt-4o)")
   .addHelpText(
     "after",
     `
@@ -48,7 +47,6 @@ program
       json: globals.json,
       quiet: globals.quiet,
       output: opts.output,
-      model: globals.model,
     });
   });
 
@@ -133,7 +131,6 @@ program.on("command:*", async (args) => {
     json: globals.json,
     quiet: globals.quiet,
     output: globals.output,
-    model: globals.model,
   });
 });
 

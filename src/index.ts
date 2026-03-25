@@ -1,5 +1,6 @@
 export { Markit } from "./markit.js";
-export type { Converter, ConversionResult, StreamInfo, ConvertOptions, LlmClient } from "./types.js";
+export type { Converter, ConversionResult, StreamInfo, MarkitOptions } from "./types.js";
+export { createLlmFunctions } from "./llm.js";
 export { PdfConverter } from "./converters/pdf.js";
 export { DocxConverter } from "./converters/docx.js";
 export { PptxConverter } from "./converters/pptx.js";
