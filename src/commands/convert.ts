@@ -2,7 +2,7 @@ import { writeFileSync } from "node:fs";
 import { extname } from "node:path";
 import { Markit } from "../markit.js";
 import { loadConfig } from "../config.js";
-import { createLlmFunctions } from "../llm.js";
+import { createLlmFunctions } from "../providers/index.js";
 import type { OutputOptions } from "../utils/output.js";
 import { output, success, error, dim, info } from "../utils/output.js";
 import { EXIT_ERROR, EXIT_UNSUPPORTED } from "../utils/exit-codes.js";

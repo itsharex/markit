@@ -1,6 +1,7 @@
 import type { OutputOptions } from "../utils/output.js";
 import { output, success, error, dim, bold } from "../utils/output.js";
-import { loadConfig, saveConfig, findConfigDir, resolveApiKey, resolveApiBase, resolveModel } from "../config.js";
+import { loadConfig, saveConfig, findConfigDir } from "../config.js";
+import { getProvider, listProviders } from "../providers/index.js";
 import { EXIT_ERROR, EXIT_USER_ERROR } from "../utils/exit-codes.js";
 
 export async function configShow(
@@ -9,16 +10,14 @@ export async function configShow(
 ): Promise<void> {
   const config = loadConfig();
   const configDir = findConfigDir();
+  const providerName = config.llm?.provider || "openai";
+  const provider = getProvider(providerName);
 
   output(options, {
     json: () => ({
       configDir,
       config,
-      resolved: {
-        apiKey: resolveApiKey(config) ? "***" : null,
-        apiBase: resolveApiBase(config),
-        model: resolveModel(config),
-      },
+      providers: listProviders(),
     }),
     human: () => {
       console.log();
@@ -33,18 +32,29 @@ export async function configShow(
       console.log(bold("LLM Settings"));
       console.log();
 
-      const apiKey = resolveApiKey(config);
-      const keySource = process.env.OPENAI_API_KEY
-        ? "OPENAI_API_KEY"
-        : process.env.MILL_API_KEY
-          ? "MILL_API_KEY"
-          : config.llm?.apiKey
-            ? "config"
-            : "not set";
-      console.log(`  ${dim("api key:")} ${apiKey ? `***${apiKey.slice(-4)} (${keySource})` : dim("not set")}`);
-      console.log(`  ${dim("api base:")} ${resolveApiBase(config)}`);
-      console.log(`  ${dim("model:")} ${resolveModel(config)}`);
-      console.log(`  ${dim("transcription:")} ${config.llm?.transcriptionModel || "gpt-4o-mini-transcribe"}`);
+      console.log(`  ${dim("provider:")} ${providerName}`);
+
+      if (provider) {
+        // Resolve API key
+        const apiKey = provider.envKeys.reduce<string | undefined>(
+          (found, key) => found || process.env[key],
+          undefined,
+        ) || config.llm?.apiKey;
+        const keySource = provider.envKeys.find((k) => process.env[k]) || (config.llm?.apiKey ? "config" : undefined);
+
+        console.log(`  ${dim("api key:")} ${apiKey ? `***${apiKey.slice(-4)} (${keySource})` : dim("not set")}`);
+        console.log(`  ${dim("api base:")} ${config.llm?.apiBase || provider.defaultBase}`);
+        console.log(`  ${dim("model:")} ${config.llm?.model || provider.defaultModel}`);
+        if (provider.defaultTranscriptionModel) {
+          console.log(`  ${dim("transcription:")} ${config.llm?.transcriptionModel || provider.defaultTranscriptionModel}`);
+        }
+        console.log(`  ${dim("env vars:")} ${provider.envKeys.join(", ")}`);
+      } else {
+        console.log(`  ${dim("(unknown provider)")}`);
+      }
+
+      console.log();
+      console.log(dim(`  Available providers: ${listProviders().join(", ")}`));
       console.log();
     },
   });
@@ -87,7 +97,6 @@ export async function configSet(
 
   const config = loadConfig();
 
-  // Parse value (handle booleans and numbers)
   let parsed: any = value;
   if (value === "true") parsed = true;
   else if (value === "false") parsed = false;

@@ -1,11 +1,15 @@
 export { Markit } from "./markit.js";
 export type { Converter, ConversionResult, StreamInfo, MarkitOptions } from "./types.js";
+export type { MarkitConfig } from "./config.js";
 export {
   createLlmFunctions,
-  createOpenAIDescribe,
-  createOpenAITranscribe,
-  createAnthropicDescribe,
-} from "./llm.js";
+  registerProvider,
+  getProvider,
+  listProviders,
+} from "./providers/index.js";
+export type { Provider, ProviderConfig, ResolvedConfig } from "./providers/types.js";
+export { openai } from "./providers/openai.js";
+export { anthropic } from "./providers/anthropic.js";
 export { PdfConverter } from "./converters/pdf.js";
 export { DocxConverter } from "./converters/docx.js";
 export { PptxConverter } from "./converters/pptx.js";

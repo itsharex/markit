@@ -6,20 +6,18 @@ const CONFIG_FILE = "config.json";
 
 export interface MarkitConfig {
   llm?: {
-    /** Provider: "openai" (default) or "anthropic" */
-    provider?: "openai" | "anthropic";
-    /** API base URL */
+    /** Provider name: "openai" (default), "anthropic", or any registered provider */
+    provider?: string;
+    /** API base URL (overrides provider default) */
     apiBase?: string;
     /** API key — prefer env vars over storing here */
     apiKey?: string;
-    /** Model for image descriptions (default: gpt-4o or claude-sonnet-4-20250514) */
+    /** Model override (overrides provider default) */
     model?: string;
-    /** Model for audio transcription (default: gpt-4o-mini-transcribe) */
+    /** Transcription model override */
     transcriptionModel?: string;
   };
 }
-
-const DEFAULT_CONFIG: MarkitConfig = {};
 
 /**
  * Walk up from cwd to find .markit/ directory.
@@ -37,21 +35,17 @@ export function findConfigDir(): string | null {
 }
 
 /**
- * Load config from .markit/config.json, merging with defaults.
+ * Load config from .markit/config.json.
  */
 export function loadConfig(): MarkitConfig {
   const configDir = findConfigDir();
-  if (!configDir) return { ...DEFAULT_CONFIG };
+  if (!configDir) return {};
 
   const configFile = join(configDir, CONFIG_FILE);
-  if (!existsSync(configFile)) return { ...DEFAULT_CONFIG };
+  if (!existsSync(configFile)) return {};
 
   const raw = JSON.parse(readFileSync(configFile, "utf-8"));
-  return {
-    ...DEFAULT_CONFIG,
-    ...raw,
-    llm: { ...DEFAULT_CONFIG.llm, ...raw.llm },
-  };
+  return { ...raw, llm: { ...raw.llm } };
 }
 
 /**
@@ -65,58 +59,4 @@ export function saveConfig(config: MarkitConfig): void {
     join(dir, CONFIG_FILE),
     `${JSON.stringify(config, null, 2)}\n`,
   );
-}
-
-/**
- * Resolve the API key. Precedence: env var > config file.
- * Checks: OPENAI_API_KEY, MARKIT_API_KEY
- */
-export function resolveApiKey(config: MarkitConfig): string | undefined {
-  if (config.llm?.provider === "anthropic") {
-    return (
-      process.env.ANTHROPIC_API_KEY ||
-      process.env.MARKIT_API_KEY ||
-      config.llm?.apiKey
-    );
-  }
-  return (
-    process.env.OPENAI_API_KEY ||
-    process.env.MARKIT_API_KEY ||
-    config.llm?.apiKey
-  );
-}
-
-/**
- * Resolve the API base URL. Precedence: env var > config file > default.
- */
-export function resolveApiBase(config: MarkitConfig): string {
-  return (
-    process.env.OPENAI_API_BASE ||
-    process.env.OPENAI_BASE_URL ||
-    process.env.MARKIT_API_BASE ||
-    config.llm?.apiBase ||
-    "https://api.openai.com/v1"
-  );
-}
-
-/**
- * Resolve the model. Precedence: flag > env var > config file > default.
- */
-export function resolveModel(
-  config: MarkitConfig,
-  flagValue?: string,
-): string {
-  return (
-    flagValue ||
-    process.env.MARKIT_MODEL ||
-    config.llm?.model ||
-    "gpt-4o"
-  );
-}
-
-/**
- * Resolve the transcription model.
- */
-export function resolveTranscriptionModel(config: MarkitConfig): string {
-  return config.llm?.transcriptionModel || "gpt-4o-mini-transcribe";
 }

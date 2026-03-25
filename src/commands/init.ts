@@ -23,10 +23,7 @@ export async function init(
   mkdirSync(root, { recursive: true });
 
   const config: MarkitConfig = {
-    llm: {
-      model: "gpt-4o",
-      transcriptionModel: "gpt-4o-mini-transcribe",
-    },
+    llm: {},
   };
 
   writeFileSync(
