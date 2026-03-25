@@ -21,6 +21,7 @@ program
   .option("--json", "Output as JSON")
   .option("-q, --quiet", "Raw markdown only, no decoration")
   .option("-p, --prompt <text>", "Extra instructions for image description")
+  .option("-o, --output <file>", "Write to file instead of stdout")
   .addHelpText(
     "after",
     `
