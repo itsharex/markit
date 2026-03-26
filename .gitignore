@@ -25,3 +25,10 @@ bun.lock
 .env
 .env.local
 .env.*.local
+
+# Benchmark artifacts
+benchmark/corpus/
+benchmark/results/
+
+# Charts
+.charts/

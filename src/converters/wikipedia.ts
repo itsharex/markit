@@ -1,5 +1,5 @@
-import TurndownService from "turndown";
 import type { ConversionResult, Converter, StreamInfo } from "../types.js";
+import { createTurndown } from "../utils/turndown.js";
 
 const WIKIPEDIA_RE = /^https?:\/\/[a-zA-Z]{2,3}\.wikipedia\.org\//;
 
@@ -31,10 +31,7 @@ export class WikipediaConverter implements Converter {
       ? titleMatch[1].replace(/ - Wikipedia$/, "").trim()
       : undefined;
 
-    const turndown = new TurndownService({
-      headingStyle: "atx",
-      codeBlockStyle: "fenced",
-    });
+    const turndown = createTurndown();
 
     // Clean up Wikipedia-specific elements
     let content = contentMatch ? contentMatch[1] : html;

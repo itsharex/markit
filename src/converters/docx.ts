@@ -1,6 +1,6 @@
 import mammoth from "mammoth";
-import TurndownService from "turndown";
 import type { ConversionResult, Converter, StreamInfo } from "../types.js";
+import { createTurndown, normalizeTablesHtml } from "../utils/turndown.js";
 
 const EXTENSIONS = [".docx"];
 const MIMETYPES = [
@@ -28,11 +28,8 @@ export class DocxConverter implements Converter {
     _streamInfo: StreamInfo,
   ): Promise<ConversionResult> {
     const { value: html } = await mammoth.convertToHtml({ buffer: input });
-    const turndown = new TurndownService({
-      headingStyle: "atx",
-      codeBlockStyle: "fenced",
-    });
-    const markdown = turndown.turndown(html);
+    const turndown = createTurndown();
+    const markdown = turndown.turndown(normalizeTablesHtml(html));
     return { markdown: markdown.trim() };
   }
 }

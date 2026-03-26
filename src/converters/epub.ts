@@ -1,7 +1,7 @@
 import { XMLParser } from "fast-xml-parser";
 import JSZip from "jszip";
-import TurndownService from "turndown";
 import type { ConversionResult, Converter, StreamInfo } from "../types.js";
+import { createTurndown, normalizeTablesHtml } from "../utils/turndown.js";
 
 const EXTENSIONS = [".epub"];
 const MIMETYPES = [
@@ -89,10 +89,7 @@ export class EpubConverter implements Converter {
     const basePath = opfPath.includes("/")
       ? opfPath.substring(0, opfPath.lastIndexOf("/"))
       : "";
-    const turndown = new TurndownService({
-      headingStyle: "atx",
-      codeBlockStyle: "fenced",
-    });
+    const turndown = createTurndown();
 
     const sections: string[] = [];
 
@@ -119,7 +116,7 @@ export class EpubConverter implements Converter {
       const cleaned = html
         .replace(/<script[\s\S]*?<\/script>/gi, "")
         .replace(/<style[\s\S]*?<\/style>/gi, "");
-      const md = turndown.turndown(cleaned).trim();
+      const md = turndown.turndown(normalizeTablesHtml(cleaned)).trim();
       if (md) sections.push(md);
     }
 

@@ -1,5 +1,6 @@
-import TurndownService from "turndown";
+import type TurndownService from "turndown";
 import type { ConversionResult, Converter, StreamInfo } from "../types.js";
+import { createTurndown } from "../utils/turndown.js";
 
 const _EXTENSIONS = [".rss", ".atom", ".xml"];
 const MIMETYPES = [
@@ -51,7 +52,7 @@ export class RssConverter implements Converter {
   }
 
   private parseRss(xml: string): ConversionResult {
-    const turndown = new TurndownService({ headingStyle: "atx" });
+    const turndown = createTurndown();
     const sections: string[] = [];
 
     // Extract from the <channel> block specifically
@@ -89,7 +90,7 @@ export class RssConverter implements Converter {
   }
 
   private parseAtom(xml: string): ConversionResult {
-    const turndown = new TurndownService({ headingStyle: "atx" });
+    const turndown = createTurndown();
     const sections: string[] = [];
 
     const feedTitle = this.extract(xml, "title");
